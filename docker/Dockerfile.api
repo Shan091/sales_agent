@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+# FastAPI ingress (Meta Cloud webhook). It never runs the embedding model, but it does install the
+# same requirements: webhooks.py imports src.tasks.processing to enqueue work, which imports the RAG
+# stack at module level. So the dependency set is shared even though the workload is not.
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+
+# Build deps for asyncpg / native wheels, then install Python deps.
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+
+# Same CPU-only torch + cached, patient pip as the worker image — see Dockerfile.worker for why.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --timeout 120 --retries 10 \
+        --extra-index-url https://download.pytorch.org/whl/cpu torch
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --timeout 120 --retries 10 -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+# init_db runs first (idempotent), then the ASGI server.
+CMD ["sh", "-c", "python -m src.scripts.init_db && uvicorn src.main:app --host 0.0.0.0 --port 8000"]

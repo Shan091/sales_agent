@@ -1,0 +1,43 @@
+# The 632 tests that need no infrastructure — no Postgres, no Redis, no API key, no .env.
+# The three that are deselected are the two live retrieval gates: they need pgvector and the
+# 2.2GB embedding model, so they are run against a real stack (see docs/setup.md), never here.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # sentence-transformers pulls torch, and the default Linux wheel drags ~2.5GB of CUDA
+      # packages in with it. Nothing here runs a model, so take the CPU wheel first and let
+      # the requirements resolve against it.
+      - name: Install torch (CPU wheel)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install requirements
+        run: pip install -r requirements-dev.txt
+
+      - name: Import the app without any configuration
+        run: python -c "import src.main"
+
+      - name: Run the suite
+        run: |
+          pytest -q \
+            --deselect tests/test_rag_pipeline.py::TestHybridSearch \
+            --deselect tests/test_rag_pipeline.py::TestTheLiveCatalogueAnswersRealQuestions

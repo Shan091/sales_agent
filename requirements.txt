@@ -1,0 +1,57 @@
+# API & Backend
+fastapi>=0.111.0
+uvicorn>=0.30.1
+pydantic>=2.7.4
+pydantic-settings>=2.3.4
+httpx>=0.27.0
+
+# Graph & Orchestration
+langchain>=0.2.6
+langchain-core>=0.2.11
+langgraph>=0.1.4
+langgraph-checkpoint-postgres>=0.0.1
+langchain-google-genai>=1.0.6
+langchain-openai>=0.1.14
+
+# Database & Memory
+asyncpg>=0.29.0
+sqlmodel>=0.0.19
+sqlalchemy>=2.0.30
+pgvector>=0.3.0
+# mem0ai: the 0.1.1xx line is required, not just preferred — its pgvector store prefers
+# psycopg3 (which we already ship for the checkpointer) and its embedder config accepts the
+# explicit huggingface/bge-m3 block src/memory/semantic.py sets. Older releases reach for
+# psycopg2 and default to a 1536-dim OpenAI embedder, which mismatches our pgvector table.
+mem0ai>=0.1.100
+# psycopg3 + pool: required by langgraph-checkpoint-postgres (AsyncPostgresSaver), and reused
+# by mem0's pgvector store. The app's own engine still uses asyncpg; see settings.psycopg_dsn.
+psycopg[binary]>=3.1.18
+psycopg-pool>=3.2.0
+
+# Observability
+# v3 moved the LangChain handler to langfuse.langchain and made the client a process
+# singleton; v4 renamed the endpoint kwarg. src/core/tracing.py detects all of these, so any
+# 3.x/4.x works — but the 2.x layout is NOT what the code is tuned for.
+langfuse>=3.0.0
+
+# Async Tasks & Queue
+taskiq>=0.11.7
+taskiq-redis>=0.5.4
+redis>=5.0.7
+
+# Utilities
+python-dotenv>=1.0.1
+
+# ═══════════════════════════════════════════════
+#  Phase 3: RAG Pipeline Dependencies
+# ═══════════════════════════════════════════════
+
+# Text Splitters (Markdown-aware + Recursive)
+langchain-text-splitters>=0.2.0
+
+# Embedding Model (BAAI/bge-m3 via sentence-transformers)
+sentence-transformers>=3.0.0
+
+# Document Parsing (IBM Docling — optional, only for offline ingestion)
+# Install separately on GPU machines: pip install docling
+# docling>=2.0.0

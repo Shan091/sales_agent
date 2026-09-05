@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+# TaskIQ worker — runs the LangGraph pipeline and the bge-m3 embedding model.
+# Heavier than the API image (pulls torch + sentence-transformers via requirements.txt).
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    # Cache the downloaded embedding model across restarts.
+    HF_HOME=/app/.hf_cache
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+
+# CPU-only torch, installed first so sentence-transformers finds it already satisfied.
+# PyPI's default linux torch wheel carries the whole CUDA toolchain (several GB of nvidia-*
+# packages); nothing here has GPU access, so that download is pure cost — and on a slow link
+# it is the thing that times the build out. PEP 440 sorts the '+cpu' local version above the
+# plain one, so the CPU index wins while PyPI stays available for torch's own dependencies.
+#
+# The cache mount matters as much as the wheel size: without it a build that dies on a network
+# blip restarts the entire download, and pip's default 15s read timeout trips easily on wheels
+# this large. BuildKit keeps the cache outside the image layer, so image size is unaffected.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --timeout 120 --retries 10 \
+        --extra-index-url https://download.pytorch.org/whl/cpu torch
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --timeout 120 --retries 10 -r requirements.txt
+
+COPY . .
+
+CMD ["taskiq", "worker", "src.tasks.broker:broker"]

@@ -1,0 +1,57 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	triage(triage)
+	retrieve_technical_context(retrieve_technical_context)
+	high_intent(high_intent)
+	window_shopper(window_shopper)
+	problem_solver(problem_solver)
+	b2b_enterprise(b2b_enterprise)
+	post_sale_support(post_sale_support)
+	out_of_domain(out_of_domain)
+	general_greeting(general_greeting)
+	contextual_rewarm(contextual_rewarm)
+	human_probe(human_probe)
+	human_escalation(human_escalation)
+	adversarial_block(adversarial_block)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> triage;
+	retrieve_technical_context -.-> b2b_enterprise;
+	retrieve_technical_context -.-> contextual_rewarm;
+	retrieve_technical_context -.-> general_greeting;
+	retrieve_technical_context -.-> high_intent;
+	retrieve_technical_context -.-> human_escalation;
+	retrieve_technical_context -.-> out_of_domain;
+	retrieve_technical_context -.-> post_sale_support;
+	retrieve_technical_context -.-> problem_solver;
+	retrieve_technical_context -.-> window_shopper;
+	triage -.-> adversarial_block;
+	triage -.-> b2b_enterprise;
+	triage -.-> contextual_rewarm;
+	triage -.-> general_greeting;
+	triage -.-> high_intent;
+	triage -.-> human_escalation;
+	triage -.-> human_probe;
+	triage -.-> out_of_domain;
+	triage -.-> post_sale_support;
+	triage -.-> problem_solver;
+	triage -.-> retrieve_technical_context;
+	triage -.-> window_shopper;
+	adversarial_block --> __end__;
+	b2b_enterprise --> __end__;
+	contextual_rewarm --> __end__;
+	general_greeting --> __end__;
+	high_intent --> __end__;
+	human_escalation --> __end__;
+	human_probe --> __end__;
+	out_of_domain --> __end__;
+	post_sale_support --> __end__;
+	problem_solver --> __end__;
+	window_shopper --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc

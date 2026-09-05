@@ -1,0 +1,83 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-otohom}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-otohom}
+      POSTGRES_DB: ${POSTGRES_DB:-otohom}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-otohom} -d ${POSTGRES_DB:-otohom}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    env_file: .env
+    environment:
+      # Override host-based URLs from .env with in-network service names.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-otohom}:${POSTGRES_PASSWORD:-otohom}@postgres:5432/${POSTGRES_DB:-otohom}
+      REDIS_URL: redis://redis:6379/0
+      PYTHONPATH: /app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./docs:/app/docs
+      - ./tests:/app/tests
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # init_db is idempotent (CREATE EXTENSION IF NOT EXISTS + create_all checkfirst).
+    command: sh -c "python -m src.scripts.init_db && uvicorn src.main:app --host 0.0.0.0 --port 8000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-otohom}:${POSTGRES_PASSWORD:-otohom}@postgres:5432/${POSTGRES_DB:-otohom}
+      REDIS_URL: redis://redis:6379/0
+      PYTHONPATH: /app
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./docs:/app/docs
+      - ./tests:/app/tests
+      - hf_cache:/app/.hf_cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    # --workers 1 on purpose. TaskIQ defaults to several processes, and each one loads its own copy
+    # of BAAI/bge-m3 (~2GB) plus its own mem0 client — doubling memory for no throughput gain, since
+    # a conversation is serialised by the Redis mutex anyway and everything else here is I/O-bound
+    # async work that one process handles concurrently.
+    command: taskiq worker src.tasks.broker:broker --workers 1
+
+volumes:
+  pgdata:
+  hf_cache:

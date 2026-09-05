@@ -1,0 +1,10 @@
+# Test-only dependencies. The application never imports these, which is why they are not in
+# requirements.txt — a production image should not carry a test runner.
+#
+# pytest-asyncio is not optional here: pytest.ini sets `asyncio_mode = auto`, so every async
+# test is collected through it. Without it the whole suite errors at collection rather than
+# skipping, which is the loud failure we want.
+-r requirements.txt
+
+pytest>=9.1.1
+pytest-asyncio>=1.4.0
