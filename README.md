@@ -1,4 +1,4 @@
-# Otohom — Autonomous WhatsApp Commerce Agent
+# Autonomous WhatsApp Commerce Agent
 
 [![tests](https://github.com/Shan091/sales_agent/actions/workflows/tests.yml/badge.svg)](https://github.com/Shan091/sales_agent/actions/workflows/tests.yml)
 
