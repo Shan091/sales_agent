@@ -41,5 +41,5 @@ app = FastAPI(title="Otohom Sales Agent", lifespan=lifespan)
 app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> dict[str, str]:
     return {"status": "healthy"}
