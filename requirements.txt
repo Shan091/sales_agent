@@ -17,6 +17,7 @@ langchain-openai>=0.1.14
 asyncpg>=0.29.0
 sqlmodel>=0.0.19
 sqlalchemy>=2.0.30
+greenlet>=3.0.3
 pgvector>=0.3.0
 # mem0ai: the 0.1.1xx line is required, not just preferred — its pgvector store prefers
 # psycopg3 (which we already ship for the checkpointer) and its embedder config accepts the
